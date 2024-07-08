@@ -31,7 +31,7 @@ jobs:
         outputFile: .github/result/check_result.json
     - name: Generate summary JSON
       run: |
-        outfile=".github/result/outfile"
+        outfile=".github/result/check_result.json"
         summary_file=".github/result/summary.json"
 
         # 提取需要的值
