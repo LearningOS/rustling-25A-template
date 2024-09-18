@@ -30,6 +30,8 @@ jobs:
       with:
         outputFile: .github/result/check_result.json
     - name: Generate summary JSON
+      env:
+        course_id: ${{ secrets.RUSTLINGS_2024_AUTUMN_COURSE_ID }}
       run: |
         outfile=".github/result/check_result.json"
         summary_file=".github/result/summary.json"
@@ -42,7 +44,7 @@ jobs:
         # 生成新的 JSON 内容
         new_json=$(jq -n \
           --arg channel "github" \
-          --argjson courseId 1558 \
+          --argjson courseId "$course_id" \
           --arg ext "aaa" \
           --arg name "$github_user" \
           --argjson score "$total_succeeds" \
@@ -55,11 +57,11 @@ jobs:
         # 打印新的 JSON 文件到终端
         cat $summary_file
     - name: Post summary JSON to remote API
+      env:
+        post_api: ${{ secrets.RUSTLINGS_2024_AUTUMN_POST_API }}
       run: |
         summary_file=".github/result/summary.json"
-
-        # 发送 POST 请求
-        curl -X POST "https://api.learningcamp.cn/web/api/courseRank/createByThird" \
+        curl -X POST https://"$post_api" \
           -H "accept: application/json;charset=utf-8" \
           -H "Content-Type: application/json" \
           -d "$(cat $summary_file)" \
