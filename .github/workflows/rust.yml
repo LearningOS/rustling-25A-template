@@ -20,7 +20,9 @@ jobs:
     outputs:
       details: ${{ steps.autograding.outputs.details }}
       points: ${{ steps.autograding.outputs.points}}
-
+    env:
+      OUTPUT: .github/result/check_result.json
+      SUMMARY: .github/result/summary.json
     steps:
     - uses: actions/checkout@v3
     - name: Run tests
@@ -28,43 +30,33 @@ jobs:
     - uses: yfblock/os-autograding@master
       id: autograding
       with:
-        outputFile: .github/result/check_result.json
+        outputFile: ${{ env.OUTPUT }}
     - name: Generate summary JSON
-      env:
-        course_id: ${{ secrets.RUSTLINGS_2025_SPRING_COURSE_ID }}
       run: |
-        outfile=".github/result/check_result.json"
-        summary_file=".github/result/summary.json"
-
         # 提取需要的值
-        total_exercations=$(jq '.statistics.total_exercations' $outfile)
-        total_succeeds=$(jq '.statistics.total_succeeds' $outfile)
-        github_user="${{ github.actor }}"
+        total_exercations=$(jq '.statistics.total_exercations' $OUTPUT)
+        total_succeeds=$(jq '.statistics.total_succeeds' $OUTPUT)
 
         # 生成新的 JSON 内容
         new_json=$(jq -n \
           --arg channel "github" \
-          --argjson courseId "$course_id" \
+          --argjson courseId "${{ secrets.RUSTLINGS_2025_AUTUMN_COURSE_ID }}" \
           --arg ext "aaa" \
-          --arg name "$github_user" \
+          --arg name "${{ github.actor }}" \
           --argjson score "$total_succeeds" \
           --argjson totalScore "$total_exercations" \
           '{channel: $channel, courseId: $courseId, ext: $ext, name: $name, score: $score, totalScore: $totalScore}')
 
         # 保存新的 JSON 文件
-        echo "$new_json" > $summary_file
+        echo "$new_json" > $SUMMARY
 
         # 打印新的 JSON 文件到终端
-        cat $summary_file
+        cat $SUMMARY
     - name: Post summary JSON to remote API
-      env:
-        post_api: ${{ secrets.RUSTLINGS_2025_SPRING_POST_API }}
-        token: ${{ secrets.RUSTLINGS_2025_SPRING_TOKEN }}
       run: |
-        summary_file=".github/result/summary.json"
-        curl -X POST $post_api \
+        curl -X POST "${{ secrets.COURSE_POST_API }}" \
           -H "accept: application/json;charset=utf-8" \
           -H "Content-Type: application/json" \
-          -H "token: $token" \
-          -d "$(cat $summary_file)" \
+          -H "token: ${{ secrets.RUSTLINGS_2025_AUTUMN_TOKEN }}" \
+          -d @$SUMMARY \
           -v
